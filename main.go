@@ -22,5 +22,5 @@ import (
 
 func main() {
 	// cmd.Execute()
-	fmt.Printf("%s\n", cmd.RecursivePemdas("3+4+(3+55+232)+(23+20.549)"))
+	fmt.Printf("%s\n", cmd.RecursivePemdas("22/7+3"))
 }

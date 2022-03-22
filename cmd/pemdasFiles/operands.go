@@ -40,7 +40,8 @@ func FindLeftRightOperands(expression string, operatorLoc int) (int, int) {
 			leftPtr -= 1
 			// if it isnt the operand anymore
 			if leftPtr < 0 || expression[leftPtr] == '+' ||
-				expression[leftPtr] == '(' || expression[leftPtr] == ')' {
+				expression[leftPtr] == '(' || expression[leftPtr] == ')' ||
+				expression[leftPtr] == '/' || expression[leftPtr] == '*' {
 				leftPtr += 1
 				leftEnd = leftPtr
 			}
@@ -50,7 +51,8 @@ func FindLeftRightOperands(expression string, operatorLoc int) (int, int) {
 			rightPtr += 1
 			// if it isnt the operand anymore
 			if rightPtr >= len(expression) || expression[rightPtr] == '+' ||
-				expression[rightPtr] == '(' || expression[rightPtr] == ')' {
+				expression[rightPtr] == '(' || expression[rightPtr] == ')' ||
+				expression[rightPtr] == '/' || expression[rightPtr] == '*' {
 				rightPtr -= 1
 				rightEnd = rightPtr
 			}
@@ -74,32 +76,52 @@ func ReplaceSubExp(expression string, newSubExpression string, leftLoc int, righ
 	return expression
 }
 
-func RecursivePemdas(expression string) string {
-	leftParenCount, rightParenCount := 0, 0
-	leftParen, rightParen := -1, -1
+func MulDivPemdas(expression string) string {
+	// calculate addition
+	mulLoc, divLoc := -1, -1
 	for i, c := range expression {
-		if c == '(' && leftParenCount == 0 {
-			leftParenCount += 1
-			leftParen = i
-		} else if c == ')' && (leftParenCount-rightParenCount) == 1 {
-			rightParen = i
+		if c == '*' {
+			mulLoc = i
+			break
+		} else if c == '/' {
+			divLoc = i
 			break
 		}
 	}
-
-	// calculate parenthesis
-	if leftParen != -1 && rightParen != -1 {
-		subexpression := expression[leftParen+1 : rightParen]
-		replaceSubExp := RecursivePemdas(subexpression)
-		expression = ReplaceSubExp(expression, replaceSubExp, leftParen, rightParen)
-
-	} else if leftParen != -1 && rightParen == -1 {
-		fmt.Println("An error occurred. Mising )")
-		return ""
-	} else if leftParen == -1 && rightParen != -1 {
-		fmt.Println("An error occured. Unexpected )")
-		return ""
+	if mulLoc == -1 && divLoc == -1 {
+		return expression
 	}
+
+	var leftOperandStr, rightOperandStr string
+	var leftOperandLoc, rightOperandLoc int
+	var result string
+	if mulLoc != -1 {
+		leftOperandLoc, rightOperandLoc = FindLeftRightOperands(expression, mulLoc)
+		leftOperandStr = expression[leftOperandLoc:mulLoc]
+		rightOperandStr = expression[mulLoc+1 : rightOperandLoc+1]
+	} else {
+		leftOperandLoc, rightOperandLoc = FindLeftRightOperands(expression, divLoc)
+		leftOperandStr = expression[leftOperandLoc:divLoc]
+		rightOperandStr = expression[divLoc+1 : rightOperandLoc+1]
+	}
+	leftOperandFloat, err := strconv.ParseFloat(leftOperandStr, 64)
+	if err != nil {
+		fmt.Printf("Error converting %s to float", leftOperandStr)
+	}
+	rightOperandFloat, err := strconv.ParseFloat(rightOperandStr, 64)
+	if err != nil {
+		fmt.Printf("Error converting %s to float", rightOperandStr)
+	}
+	if mulLoc != -1 {
+		result = fmt.Sprintf("%f", leftOperandFloat*rightOperandFloat)
+	} else {
+		result = fmt.Sprintf("%f", leftOperandFloat/rightOperandFloat)
+	}
+	expression = ReplaceSubExp(expression, result, leftOperandLoc, rightOperandLoc)
+	return expression
+}
+
+func AdditionPemdas(expression string) string {
 	// calculate addition
 	additionLoc := -1
 	for i, c := range expression {
@@ -125,14 +147,43 @@ func RecursivePemdas(expression string) string {
 		result := fmt.Sprintf("%f", leftOperandFloat+rightOperandFloat)
 		expression = ReplaceSubExp(expression, result, leftOperandLoc, rightOperandLoc)
 	}
-	// check for mul/div
+	return expression
+}
 
-	// check for addition
-	// int locOfLeftAddition
-	// calculate leftOperand and rightOperand
-	// newValue = leftOperand + rightOperand
-	// replace whole thing with newValue
-	// return expression
+func ParenthesisPemdas(expression string) string {
+	leftParenCount, rightParenCount := 0, 0
+	leftParen, rightParen := -1, -1
+	for i, c := range expression {
+		if c == '(' && leftParenCount == 0 {
+			leftParenCount += 1
+			leftParen = i
+		} else if c == ')' && (leftParenCount-rightParenCount) == 1 {
+			rightParen = i
+			break
+		}
+	}
+
+	// calculate parenthesis
+	if leftParen != -1 && rightParen != -1 {
+		subexpression := expression[leftParen+1 : rightParen]
+		replaceSubExp := RecursivePemdas(subexpression)
+		expression = ReplaceSubExp(expression, replaceSubExp, leftParen, rightParen)
+
+	} else if leftParen != -1 && rightParen == -1 {
+		fmt.Println("An error occurred. Mising )")
+		os.Exit(1)
+	} else if leftParen == -1 && rightParen != -1 {
+		fmt.Println("An error occured. Unexpected )")
+		os.Exit(1)
+	}
+	return expression
+}
+
+func RecursivePemdas(expression string) string {
+	expression = ParenthesisPemdas(expression)
+	expression = MulDivPemdas(expression)
+	expression = AdditionPemdas(expression)
+
 	_, err := strconv.ParseFloat(expression, 64)
 	if err == nil {
 		return expression
