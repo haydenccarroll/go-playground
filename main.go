@@ -15,8 +15,12 @@ limitations under the License.
 */
 package main
 
-import "my-calc/cmd"
+import (
+	"fmt"
+	cmd "my-calc/cmd/pemdasFiles"
+)
 
 func main() {
-	cmd.Execute()
+	// cmd.Execute()
+	fmt.Printf("%s\n", cmd.RecursivePemdas("3+4+(3+55+232)+(23+20.549)"))
 }
