@@ -16,11 +16,9 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
-	cmd "my-calc/cmd/pemdasFiles"
+	"my-calc/cmd"
 )
 
 func main() {
-	// cmd.Execute()
-	fmt.Printf("%s\n", cmd.RecursivePemdas("22/7+3"))
+	cmd.Execute()
 }

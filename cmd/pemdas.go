@@ -23,29 +23,21 @@ import (
 
 // pemdasCmd represents the pemdas command
 var pemdasCmd = &cobra.Command{
-	Use:   "pemdas",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Use:   "pemdas \"expression string\"",
+	Short: "This is a PEMDAS calculator created in Go.",
+	Long: `To use, do pemdas "3+4*(-12+5). This returns the result of the expression.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+There is an optional flag -i or --implicit-mul, which turns on implicit multiplication. 
+Implicit multiplication is off by default.`,
+	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("pemdas called")
-		if len(args) == 0 {
-			fmt.Println("Improper usage. Please enter a calculation.")
-			return
-		}
-
-		
+		fmt.Println(RecursivePemdas(args[0]))
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(pemdasCmd)
-
-	pemdasCmd.Flags().BoolP("implicit-mul", "im", true, "True if () takes precedence over /")
+	pemdasCmd.Flags().BoolP("implicit-mul", "i", false, "True if implicit multiplication is above multiplication")
 
 	// Here you will define your flags and configuration settings.
 
