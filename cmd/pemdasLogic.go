@@ -61,14 +61,14 @@ func FindLeftRightOperands(expression string, operatorLoc int) (int, int) {
 			// if it isnt the operand anymore
 			if rightPtr >= len(expression) || expression[rightPtr] == '+' ||
 				expression[rightPtr] == '(' || expression[rightPtr] == ')' ||
-				expression[rightPtr] == '/' || expression[rightPtr] == '*' {
+				expression[rightPtr] == '/' || expression[rightPtr] == '*' ||
+				(expression[rightPtr] == '-' && rightPtr != operatorLoc+1) {
 				rightPtr -= 1
 				rightEnd = rightPtr
 			}
 		}
 	}
 	return leftEnd, rightEnd
-
 }
 
 func ReplaceSubExp(expression string, newSubExpression string, leftLoc int, rightLoc int) string {
@@ -85,34 +85,41 @@ func ReplaceSubExp(expression string, newSubExpression string, leftLoc int, righ
 	return expression
 }
 
-func MulDivPemdas(expression string) string {
-	// calculate addition
-	mulLoc, divLoc := -1, -1
+func IsBinarySubOperator(expression string, subLoc int) bool {
+	return (expression[subLoc] == '-' && subLoc != 0 &&
+		!IsOperatorToLeft(expression, subLoc))
+}
+
+func MulDivPemdas(inputExpression string) (expression string, didRun bool) {
+	expression = inputExpression
+	didRun = false
+
+	// find first mul/div location
+	operatorLoc := -1
+	isMul, isDiv := false, false
 	for i, c := range expression {
 		if c == '*' {
-			mulLoc = i
+			operatorLoc = i
+			isMul = true
 			break
 		} else if c == '/' {
-			divLoc = i
+			operatorLoc = i
+			isDiv = true
 			break
 		}
 	}
-	if mulLoc == -1 && divLoc == -1 {
-		return expression
+	if !isMul && !isDiv {
+		return
 	}
 
 	var leftOperandStr, rightOperandStr string
 	var leftOperandLoc, rightOperandLoc int
 	var result string
-	if mulLoc != -1 {
-		leftOperandLoc, rightOperandLoc = FindLeftRightOperands(expression, mulLoc)
-		leftOperandStr = expression[leftOperandLoc:mulLoc]
-		rightOperandStr = expression[mulLoc+1 : rightOperandLoc+1]
-	} else if divLoc != -1 {
-		leftOperandLoc, rightOperandLoc = FindLeftRightOperands(expression, divLoc)
-		leftOperandStr = expression[leftOperandLoc:divLoc]
-		rightOperandStr = expression[divLoc+1 : rightOperandLoc+1]
-	}
+
+	leftOperandLoc, rightOperandLoc = FindLeftRightOperands(expression, operatorLoc)
+	leftOperandStr = expression[leftOperandLoc:operatorLoc]
+	rightOperandStr = expression[operatorLoc+1 : rightOperandLoc+1]
+
 	leftOperandFloat, err := strconv.ParseFloat(leftOperandStr, 64)
 	if err != nil {
 		fmt.Printf("Error converting %s to float\n", leftOperandStr)
@@ -121,100 +128,112 @@ func MulDivPemdas(expression string) string {
 	if err != nil {
 		fmt.Printf("Error converting %s to float\n", rightOperandStr)
 	}
-	if mulLoc != -1 {
+	if isMul {
 		result = fmt.Sprintf("%f", leftOperandFloat*rightOperandFloat)
 	} else {
 		result = fmt.Sprintf("%f", leftOperandFloat/rightOperandFloat)
 	}
 	expression = ReplaceSubExp(expression, result, leftOperandLoc, rightOperandLoc)
-	return expression
+	didRun = true
+	return
 }
 
-func AddSubPemdas(expression string) string {
-	// calculate addition
-	additionLoc := -1
-	subtractionLoc := -1
+func AddSubPemdas(inputExpression string) (expression string, didRun bool) {
+	didRun = false
+	expression = inputExpression
+	// find first mul/div location
+	operatorLoc := -1
+	isAdd, isSub := false, false
 	for i, c := range expression {
 		if c == '+' {
-			additionLoc = i
+			operatorLoc = i
+			isAdd = true
 			break
-		} else if c == '-' && !IsOperatorToLeft(expression, i) && i != 0 { // found binary subtraction operator
-			subtractionLoc = i
+		} else if IsBinarySubOperator(expression, i) { // if its binary subtraction operator
+			operatorLoc = i
+			isSub = true
 			break
 		}
 	}
-	if additionLoc != -1 {
-		leftOperandLoc, rightOperandLoc := FindLeftRightOperands(expression, additionLoc)
-		leftOperandStr := expression[leftOperandLoc:additionLoc]
-		rightOperandStr := expression[additionLoc+1 : rightOperandLoc+1]
-
-		leftOperandFloat, err := strconv.ParseFloat(leftOperandStr, 64)
-		if err != nil {
-			fmt.Printf("Error converting %s to float\n", leftOperandStr)
-		}
-		rightOperandFloat, err := strconv.ParseFloat(rightOperandStr, 64)
-		if err != nil {
-			fmt.Printf("Error converting %s to float\n", rightOperandStr)
-		}
-
-		result := fmt.Sprintf("%f", leftOperandFloat+rightOperandFloat)
-		expression = ReplaceSubExp(expression, result, leftOperandLoc, rightOperandLoc)
-	} else if subtractionLoc != -1 {
-		leftOperandLoc, rightOperandLoc := FindLeftRightOperands(expression, subtractionLoc)
-		leftOperandStr := expression[leftOperandLoc:subtractionLoc]
-		rightOperandStr := expression[subtractionLoc+1 : subtractionLoc+1]
-
-		leftOperandFloat, err := strconv.ParseFloat(leftOperandStr, 64)
-		if err != nil {
-			fmt.Printf("Error converting %s to float\n", leftOperandStr)
-		}
-		rightOperandFloat, err := strconv.ParseFloat(rightOperandStr, 64)
-		if err != nil {
-			fmt.Printf("Error converting %s to float\n", rightOperandStr)
-		}
-		result := fmt.Sprintf("%f", leftOperandFloat-rightOperandFloat)
-		expression = ReplaceSubExp(expression, result, leftOperandLoc, rightOperandLoc)
+	if !isAdd && !isSub {
+		return
 	}
-	return expression
+
+	var leftOperandStr, rightOperandStr string
+	var leftOperandLoc, rightOperandLoc int
+	var result string
+
+	leftOperandLoc, rightOperandLoc = FindLeftRightOperands(expression, operatorLoc)
+	leftOperandStr = expression[leftOperandLoc:operatorLoc]
+	rightOperandStr = expression[operatorLoc+1 : rightOperandLoc+1]
+
+	leftOperandFloat, err := strconv.ParseFloat(leftOperandStr, 64)
+	if err != nil {
+		fmt.Printf("Error converting %s to float\n", leftOperandStr)
+	}
+	rightOperandFloat, err := strconv.ParseFloat(rightOperandStr, 64)
+	if err != nil {
+		fmt.Printf("Error converting %s to float\n", rightOperandStr)
+	}
+	if isAdd {
+		result = fmt.Sprintf("%f", leftOperandFloat+rightOperandFloat)
+	} else {
+		result = fmt.Sprintf("%f", leftOperandFloat-rightOperandFloat)
+	}
+	expression = ReplaceSubExp(expression, result, leftOperandLoc, rightOperandLoc)
+	didRun = true
+	return
 }
 
-func ParenthesisPemdas(expression string) string {
-	leftParenCount, rightParenCount := 0, 0
-	leftParen, rightParen := -1, -1
+func ParenthesisPemdas(inputExpression string) (expression string, didRun bool) {
+	expression = inputExpression
+	didRun = false
+	parenCount := 0
+	leftParenLoc, rightParenLoc := -1, -1
 	for i, c := range expression {
-		if c == '(' && leftParenCount == 0 {
-			leftParenCount += 1
-			leftParen = i
-		} else if c == ')' && (leftParenCount-rightParenCount) == 1 {
-			rightParen = i
-			break
+		if c == '(' {
+			if parenCount == 0 {
+				leftParenLoc = i
+			}
+			parenCount += 1
+		} else if c == ')' {
+			if parenCount == 1 {
+				rightParenLoc = i
+				break
+			}
+			parenCount -= 1
 		}
 	}
 
-	// calculate parenthesis
-	if leftParen != -1 && rightParen != -1 {
-		subexpression := expression[leftParen+1 : rightParen]
-		replaceSubExp := RecursivePemdas(subexpression)
-		expression = ReplaceSubExp(expression, replaceSubExp, leftParen, rightParen)
-
-	} else if leftParen != -1 && rightParen == -1 {
+	if leftParenLoc != -1 && rightParenLoc == -1 {
 		fmt.Println("An error occurred. Mising )")
 		os.Exit(1)
-	} else if leftParen == -1 && rightParen != -1 {
+	} else if leftParenLoc == -1 && rightParenLoc != -1 {
 		fmt.Println("An error occured. Unexpected )")
 		os.Exit(1)
+	} else if leftParenLoc != -1 && rightParenLoc != -1 {
+		didRun = true
+		subExpression := expression[leftParenLoc+1 : rightParenLoc]
+		replaceSubExp := RecursivePemdas(subExpression)
+		expression = ReplaceSubExp(expression, replaceSubExp, leftParenLoc, rightParenLoc)
 	}
-	return expression
+	return
 }
 
 func RecursivePemdas(expression string) string {
-	expression = ParenthesisPemdas(expression)
-	expression = MulDivPemdas(expression)
-	expression = AddSubPemdas(expression)
+	var didRun bool = true
 
-	_, err := strconv.ParseFloat(expression, 64)
-	if err == nil {
-		return expression
+	for didRun {
+		expression, didRun = ParenthesisPemdas(expression)
 	}
-	return RecursivePemdas(expression)
+	didRun = true
+	for didRun {
+		expression, didRun = MulDivPemdas(expression)
+	}
+	didRun = true
+	for didRun {
+		expression, didRun = AddSubPemdas(expression)
+	}
+
+	return expression
 }
