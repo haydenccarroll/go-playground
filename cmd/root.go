@@ -35,7 +35,7 @@ var rootCmd = &cobra.Command{
 	(such as pemdas), simply use go-playground [subcommand]`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	Run: func(cmd *cobra.Command, args []string) { RecursivePemdas("3") },
+	Run: func(cmd *cobra.Command, args []string) {},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

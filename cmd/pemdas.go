@@ -31,7 +31,7 @@ There is an optional flag -i or --implicit-mul, which turns on implicit multipli
 Implicit multiplication is off by default.`,
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(RecursivePemdas(args[0]))
+		fmt.Println(Pemdas(args[0]))
 	},
 }
 
